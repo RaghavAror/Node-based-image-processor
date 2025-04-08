@@ -1,5 +1,5 @@
-#include "Connection.h"
-#include "Node.h"
+#include "connection.h"
+#include "node.h"
 
 Connection::Connection(std::shared_ptr<Node> from, std::shared_ptr<Node> to)
     : fromNode(from), toNode(to) {}
