@@ -1,14 +1,30 @@
-#include "BlurNode.h"
-
-BlurNode::BlurNode(const std::string& name) : Node(name), blurRadius(1) {}
+#include "blurnode.h"
+#include "connection.h"      // Needed for accessing inputConnections
+#include "imageinput.h"  // Needed for dynamic_pointer_cast to ImageInputNode
+#include <stdexcept>
 
 void BlurNode::process() {
-    // Processing logic for the Blur Node
-    // For now, we'll assume the image is passed directly to applyGaussianBlur
-    // In a real scenario, you would get the image from the connected input node
-    cv::Mat image; // This should be obtained from the input connection
-    cv::Mat blurredImage = applyGaussianBlur(image);
-    // Pass the blurredImage to the next node in the pipeline
+    if (inputConnections.empty()) {
+        throw std::runtime_error("No input connection for BlurNode.");
+    }
+    
+    // Get the first connection
+    std::shared_ptr<Connection> conn = inputConnections.front();
+    // Get the node that is the source of the connection
+    std::shared_ptr<Node> fromNode = conn->getFromNode();
+    
+    // Try to cast fromNode to an ImageInputNode
+    auto imageInput = std::dynamic_pointer_cast<ImageInputNode>(fromNode);
+    if (!imageInput) {
+        throw std::runtime_error("Invalid node connected to BlurNode; expecting an ImageInputNode.");
+    }
+    
+    cv::Mat inputImage = imageInput->getImage();
+    if (inputImage.empty()) {
+        throw std::runtime_error("Input image is empty in BlurNode.");
+    }
+    
+    outputImage = applyGaussianBlur(inputImage);
 }
 
 void BlurNode::setBlurRadius(int radius) {

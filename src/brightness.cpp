@@ -1,15 +1,27 @@
-#include "BrightnessContrastNode.h"
-
-BrightnessContrastNode::BrightnessContrastNode(const std::string& name)
-    : Node(name), brightness(0), contrast(1.0) {}
+#include "brightness.h"
+#include "connection.h"       // To work with inputConnections
+#include "imageinput.h"   // To cast to ImageInputNode and use getImage()
+#include <stdexcept>
 
 void BrightnessContrastNode::process() {
-    // Processing logic for the Brightness/Contrast Node
-    // For now, we'll assume the image is passed directly to adjustBrightnessContrast
-    // In a real scenario, you would get the image from the connected input node
-    cv::Mat image; // This should be obtained from the input connection
-    cv::Mat adjustedImage = adjustBrightnessContrast(image);
-    // Pass the adjustedImage to the next node in the pipeline
+    if (inputConnections.empty()) {
+        throw std::runtime_error("No input connection for BrightnessContrastNode.");
+    }
+    
+    std::shared_ptr<Connection> conn = inputConnections.front();
+    std::shared_ptr<Node> fromNode = conn->getFromNode();
+    
+    auto imageInput = std::dynamic_pointer_cast<ImageInputNode>(fromNode);
+    if (!imageInput) {
+        throw std::runtime_error("Invalid node connected to BrightnessContrastNode; expecting an ImageInputNode.");
+    }
+    
+    cv::Mat inputImage = imageInput->getImage();
+    if (inputImage.empty()) {
+        throw std::runtime_error("Input image is empty in BrightnessContrastNode.");
+    }
+    
+    outputImage = adjustBrightnessContrast(inputImage);
 }
 
 void BrightnessContrastNode::setBrightness(int brightness) {

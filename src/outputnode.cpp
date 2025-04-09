@@ -1,15 +1,38 @@
-#include "OutputNode.h"
-
-OutputNode::OutputNode(const std::string& name) : Node(name), quality(90) {
-    // Default output format is PNG
-    outputFormat = "png";
-}
+#include "outputnode.h"
+#include "connection.h"
+#include "brightness.h"
+#include "blurnode.h"
+#include <vector>
+#include <stdexcept>
+#include <opencv2/imgcodecs.hpp>
 
 void OutputNode::process() {
-    // Processing logic for the Output Node
-    // For now, we'll assume the image is passed directly to saveImage
-    // In a real scenario, you would get the image from the connected input node
-    cv::Mat image; // This should be obtained from the input connection
+    if (inputConnections.empty()) {
+        throw std::runtime_error("No input connection for OutputNode.");
+    }
+    
+    std::shared_ptr<Connection> conn = inputConnections.front();
+    std::shared_ptr<Node> fromNode = conn->getFromNode();
+    
+    cv::Mat image;
+    // Try casting to BrightnessContrastNode first.
+    auto bcNode = std::dynamic_pointer_cast<BrightnessContrastNode>(fromNode);
+    if (bcNode && !bcNode->getOutputImage().empty()) {
+        image = bcNode->getOutputImage();
+    } else {
+        // If that fails, try casting to BlurNode.
+        auto blurNode = std::dynamic_pointer_cast<BlurNode>(fromNode);
+        if (blurNode && !blurNode->getOutputImage().empty()) {
+            image = blurNode->getOutputImage();
+        }
+    }
+    
+    if (image.empty()) {
+        throw std::runtime_error("No image available to save in OutputNode.");
+    }
+    outputImage = image;
+    
+    // Save the image to disk.
     saveImage("output_image." + outputFormat, image);
 }
 
